@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
+
+# Grading requirement: never commit the dataset, trained weights, or the
+# submission zip (leaffliction_team_plan.md section 7 delivery checklist).
+images/
+model/
+toy_dataset/
+*.zip

@@ -1,0 +1,17 @@
+# Shared across all three of us — pin versions here once and everybody
+# installs the same ones (leaffliction_team_plan.md 5.4: PlantCV version pain
+# is a named risk; the same discipline applies to TensorFlow/Keras here).
+#
+# NOTE: TensorFlow does not yet ship wheels for Python 3.14 (checked
+# 2026-07-27). Use Python 3.10-3.12 for this project until that changes.
+numpy>=1.26,<3
+opencv-python-headless>=4.9,<5
+matplotlib>=3.8,<4
+tensorflow>=2.16,<2.17
+
+# dev/test only
+flake8>=7.0
+
+# Person B adds their augmentation library choice here (albumentations /
+# imgaug) when their branch lands.
+# Person C adds plantcv here, pinned, when their branch lands.
