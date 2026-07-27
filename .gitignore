@@ -1,1 +1,12 @@
 images/
+model/
+*.zip
+augmented_directory/
+toy_dataset/
+__pycache__/
+*.pyc
+.venv/
+venv/
+.DS_Store
+train_files.txt
+val_files.txt
