@@ -1,4 +1,11 @@
-numpy>=1.24
-opencv-python>=4.8
-matplotlib>=3.7
+# Python 3.12 (3.14 cannot build scipy from source; see README)
+numpy==2.4.6
+opencv-python==4.11.0.86
+matplotlib==3.11.1
+scipy==1.15.3
+scikit-image==0.26.0
+plantcv==4.11.3
+flake8==7.3.0
+
+# owned by A: pin the exact version once trained
 tensorflow>=2.13
