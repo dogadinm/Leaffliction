@@ -10,13 +10,23 @@ times then dense->softmax, kept in reserve for the defense question.
 
 Split-then-augment (trap 2, plan section 0): this script always computes the
 stratified split itself from the raw --directory and writes
-model/{train,val}_files.txt as the provable record. --train-dir only
-overrides *where pixels are read from* for the training files already chosen
-by that split; validation always reads the untouched raw images. Never point
---train-dir at a directory that existed before this split ran.
+model/{train,val}_files.txt as the provable record, before a single
+augmented pixel exists. By default it then builds a balanced
+augmented_directory from *that train split only* (oversampling minority
+classes with leaffliction.augment's six offline augmentations, the same
+functions Augmentation.py's directory mode uses) and trains on that — so the
+plain `./train.py DIR` invocation the subject and delivery checklist show
+actually satisfies "train.py must increase/modify those images", with no
+separate manual step required. --train-dir overrides *where pixels are read
+from* for the training files already chosen by that split (e.g. to reuse a
+directory someone else built the same way); validation always reads the
+untouched raw images. Never point --train-dir at a directory that existed
+before this split ran. --no-augment trains directly on the raw split, useful
+for fast toy-dataset iteration.
 
 Usage:
     ./train.py ./Apple/
+    ./train.py ./Apple/ --no-augment
     ./train.py ./Apple/ --train-dir ./Apple_augmented_directory
 """
 from __future__ import annotations
@@ -24,12 +34,16 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections import defaultdict
 from pathlib import Path
 
+import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 
-from leaffliction.io import iter_images, label_of, try_load_image
+from leaffliction.augment import AUGMENTATIONS
+from leaffliction.augment import apply as apply_augmentation
+from leaffliction.io import iter_images, label_of, load_image, save_image, try_load_image
 from leaffliction.package import build_release
 from leaffliction.split import stratified_split, write_split
 
@@ -46,9 +60,24 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--train-dir",
         type=Path,
         default=None,
-        help="override: read TRAIN images from here instead of --directory "
-        "(e.g. Person B's augmented_directory, built from train_files.txt). "
-        "Validation images always come from the raw split.",
+        help="override: read TRAIN images from here instead of building "
+        "the balanced augmented_directory internally (e.g. to reuse a "
+        "directory already built from train_files.txt). Validation images "
+        "always come from the raw split.",
+    )
+    parser.add_argument(
+        "--augment-dir",
+        type=Path,
+        default=Path("augmented_directory"),
+        help="where to build the balanced training set before training "
+        "(default: augmented_directory). Ignored if --train-dir is given.",
+    )
+    parser.add_argument(
+        "--no-augment",
+        action="store_true",
+        help="train directly on the raw stratified split, skipping the "
+        "offline-augmentation balancing step (fast toy-dataset iteration). "
+        "Ignored if --train-dir is given.",
     )
     parser.add_argument("--model-dir", type=Path, default=Path("model"))
     parser.add_argument("--img-size", type=int, default=IMG_SIZE)
@@ -81,6 +110,60 @@ def filter_readable(files: list[Path]) -> list[Path]:
     if dropped:
         print(f"warning: skipped {dropped} unreadable file(s)", file=sys.stderr)
     return kept
+
+
+def build_augmented_train_dir(
+    train_files: list[Path],
+    output_root: Path,
+    rng: np.random.Generator,
+) -> list[Path]:
+    """Oversample minority classes into output_root, from train_files only.
+
+    train_files must already be the *train* half of stratified_split's
+    output (trap 2: never call this on a directory built before the split).
+    Mirrors Augmentation.py's own directory-balancing mode, reusing the same
+    leaffliction.augment functions, so the two stay consistent by
+    construction rather than by convention.
+    """
+    by_class: dict[str, list[Path]] = defaultdict(list)
+    for path in train_files:
+        by_class[label_of(path)].append(path)
+
+    target = max(len(paths) for paths in by_class.values())
+    print(
+        f"balancing {len(by_class)} classes to {target} images each "
+        f"under {output_root}",
+        file=sys.stderr,
+    )
+
+    written: list[Path] = []
+    for label, paths in sorted(by_class.items()):
+        paths = sorted(paths)
+        out_dir = output_root / label
+        out_dir.mkdir(parents=True, exist_ok=True)
+
+        # Copy every original train-split image over unmodified first.
+        for src in paths:
+            dst = out_dir / src.name
+            if not dst.exists():
+                save_image(load_image(src), dst)
+            written.append(dst)
+
+        # Then oversample with the six offline augmentations up to target.
+        count = len(paths)
+        idx = 0
+        while count < target:
+            src = paths[idx % len(paths)]
+            kind = AUGMENTATIONS[int(rng.integers(0, len(AUGMENTATIONS)))]
+            aug_img = apply_augmentation(load_image(src), kind, rng)
+            dst = out_dir / f"{src.stem}_{kind}_{count}{src.suffix}"
+            save_image(aug_img, dst)
+            written.append(dst)
+            count += 1
+            idx += 1
+
+    print(f"wrote {len(written)} training images under {output_root}", file=sys.stderr)
+    return written
 
 
 def build_dataset(
@@ -158,8 +241,13 @@ def main(argv: list[str] | None = None) -> int:
     write_split(train_files, val_files, args.model_dir)
 
     if args.train_dir is not None:
-        train_files = list(iter_images(args.train_dir))
-    train_files = filter_readable(train_files)
+        train_files = filter_readable(list(iter_images(args.train_dir)))
+    elif args.no_augment:
+        train_files = filter_readable(train_files)
+    else:
+        train_files = filter_readable(train_files)
+        rng = np.random.default_rng(args.seed)
+        train_files = build_augmented_train_dir(train_files, args.augment_dir, rng)
 
     train_ds = build_dataset(
         train_files, label_index, args.img_size, args.batch_size,
