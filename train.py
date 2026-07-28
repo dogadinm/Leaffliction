@@ -45,6 +45,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 
+from leaffliction import IMG_SIZE, SEED, VAL_SPLIT
 from leaffliction.augment import AUGMENTATIONS
 from leaffliction.augment import apply as apply_augmentation
 from leaffliction.io import iter_images, label_of, load_image, save_image, try_load_image
@@ -56,9 +57,6 @@ from leaffliction.metrics import (
 from leaffliction.package import build_release
 from leaffliction.split import stratified_split, write_split
 
-IMG_SIZE = 128
-SEED = 42
-VAL_SPLIT = 0.2
 MIN_VAL_IMAGES = 100
 
 

@@ -1,9 +1,15 @@
 from pathlib import Path
 
+import matplotlib
 import numpy as np
 import pytest
 
-from leaffliction.io import save_image
+# Must run before any test imports pyplot (directly or via leaffliction.viz):
+# the default GUI backend has no display in CI/headless runs and either
+# blocks on plt.show() or fails outright.
+matplotlib.use("Agg")
+
+from leaffliction.io import save_image  # noqa: E402
 
 
 @pytest.fixture
