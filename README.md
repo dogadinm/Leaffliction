@@ -65,9 +65,13 @@ The data set is not in this repository, as the subject requires.
 ./Distribution.py ./Apple
 
 ./train.py ./Apple/
-# writes model/model.keras, model/labels.json, model/config.json,
+# splits ./Apple into train/val, builds a balanced augmented_directory from
+# the train half only (leaffliction.augment's six offline augmentations,
+# oversampling minority classes), then trains on that. Writes
+# model/model.keras, model/labels.json, model/config.json,
 # model/train_files.txt, model/val_files.txt, and (by default) packages
-# leaffliction.zip + signature.txt. Add --no-package while iterating.
+# leaffliction.zip + signature.txt. Add --no-package while iterating, or
+# --no-augment to train on the raw split directly (fast toy-dataset runs).
 
 ./predict.py "./Apple/Apple_healthy/image (1).JPG"
 ```
@@ -118,10 +122,14 @@ from the training split.
 
 **Split first, augment second.** `train.py` always computes the stratified
 split from the raw directory and writes `model/{train,val}_files.txt` before
-touching any augmented directory. `--train-dir` only changes where *training*
-pixels are read from; validation always reads the untouched raw images named
-in `val_files.txt`. See `leaffliction_team_plan.md` section 0 for why getting
-this backwards zeroes the grade.
+a single augmented pixel exists, then (by default) builds
+`augmented_directory` from the train half only and trains on that.
+`--train-dir` lets you point training at a directory already built the same
+way instead of rebuilding it; `--no-augment` trains directly on the raw
+split. Validation always reads the untouched raw images named in
+`val_files.txt`, never anything under `augmented_directory`. See
+`leaffliction_team_plan.md` section 0 for why getting this backwards zeroes
+the grade.
 
 ## Development dataset
 
