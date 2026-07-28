@@ -19,11 +19,13 @@ import json
 import sys
 from pathlib import Path
 
+import cv2
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 
 from leaffliction.io import try_load_image
+from leaffliction.transform import TRANSFORMS
 from leaffliction.transform import apply as transform_apply
 from leaffliction.viz import show_image_grid
 
@@ -35,6 +37,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--transform",
         default="GaussianBlur",
+        choices=TRANSFORMS,
         help="which leaffliction.transform kind to display next to the prediction",
     )
     parser.add_argument(
@@ -81,10 +84,12 @@ def main(argv: list[str] | None = None) -> int:
     transformed = img
     try:
         transformed = transform_apply(img, args.transform)
-    except NotImplementedError:
-        # Person C's transforms aren't implemented yet; fall back to showing
-        # the original twice rather than crashing the prediction display.
-        pass
+    except (ValueError, cv2.error) as exc:
+        # --transform is argparse-validated against TRANSFORMS, so this is a
+        # transform that fails on this particular image (e.g. PlantCV
+        # can't segment a degenerate leaf), not a bad flag value. Show the
+        # original twice rather than crashing the prediction display.
+        print(f"warning: {args.transform} failed on this image: {exc}", file=sys.stderr)
 
     print(f"{args.image.name}: {label} ({confidence:.1%})")
 
