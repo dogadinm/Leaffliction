@@ -222,8 +222,13 @@ def pseudolandmarks(rgb: np.ndarray,
                           ("center", center)):
         color = LANDMARK_COLORS[group]
         for point in np.asarray(points).reshape(-1, 2):
-            cv2.circle(out, (int(point[0]), int(point[1])),
-                       LANDMARK_RADIUS, color, -1)
+            try:
+                x, y = int(point[0]), int(point[1])
+            except (TypeError, ValueError):
+                # PlantCV yields the string "NA" instead of coordinates
+                # when the object is too small to walk a contour around.
+                continue
+            cv2.circle(out, (x, y), LANDMARK_RADIUS, color, -1)
     return out
 
 

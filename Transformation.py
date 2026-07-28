@@ -78,10 +78,23 @@ def as_color(image: np.ndarray) -> np.ndarray:
     return image
 
 
+def read_image(path: Path) -> np.ndarray:
+    """Load an image, telling a missing path from an unreadable one.
+
+    io.load_image reports both cases as "could not read", which sends
+    you hunting for a corrupt file when you actually mistyped a path.
+    """
+    if not path.exists():
+        raise FileNotFoundError(f"no such file: {path}")
+    if path.is_dir():
+        raise IsADirectoryError(f"{path} is a directory, use -src for that")
+    return io.load_image(path)
+
+
 def display(path: Path, kinds: list[str]) -> int:
     """Show the transformations of a single image."""
     try:
-        rgb = io.load_image(path)
+        rgb = read_image(path)
     except (ValueError, OSError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
