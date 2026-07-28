@@ -9,6 +9,7 @@ from typing import Mapping, Sequence
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.axes import Axes
+from matplotlib.backends.backend_agg import FigureCanvasAgg
 from matplotlib.figure import Figure
 
 
@@ -87,14 +88,13 @@ def show_grid(
     finish_figure(fig, save_path)
 
 
-def show_color_histogram(
+def build_color_histogram(
     histograms: Mapping[str, np.ndarray],
     colors: Mapping[str, str],
     *,
     suptitle: str | None = None,
-    save_path: Path | str | None = None,
-) -> None:
-    """Plot the nine channel histograms of Figure IV.7.
+) -> Figure:
+    """Build the nine channel line plot of Figure IV.7.
 
     This is a line plot rather than an image, so it cannot share a cell
     with the transformation grid and gets its own figure.
@@ -111,7 +111,38 @@ def show_color_histogram(
     ax.legend(title="color Channel", loc="upper right", fontsize="small")
     if suptitle:
         ax.set_title(suptitle)
+    return fig
+
+
+def show_color_histogram(
+    histograms: Mapping[str, np.ndarray],
+    colors: Mapping[str, str],
+    *,
+    suptitle: str | None = None,
+    save_path: Path | str | None = None,
+) -> None:
+    """Display or save the color histogram."""
+    fig = build_color_histogram(histograms, colors, suptitle=suptitle)
     finish_figure(fig, save_path)
+
+
+def figure_to_array(fig: Figure, *, dpi: int = 100) -> np.ndarray:
+    """Render a figure into an RGB uint8 array and close it.
+
+    A dedicated Agg canvas is attached rather than using fig.canvas,
+    because the active backend may be an interactive one whose canvas
+    has no pixel buffer to read.
+
+    The dpi is set explicitly: matplotlib inherits it from the display,
+    so the same figure rasterises to 900x500 on one machine and
+    1800x1000 on a retina screen.
+    """
+    fig.set_dpi(dpi)
+    canvas = FigureCanvasAgg(fig)
+    canvas.draw()
+    rgba = np.asarray(canvas.buffer_rgba())
+    plt.close(fig)
+    return rgba[:, :, :3].copy()
 
 
 def show_augmentation_grid(

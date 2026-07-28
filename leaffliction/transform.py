@@ -8,9 +8,13 @@ to this module and every public function takes and returns RGB.
 
 from __future__ import annotations
 
+from typing import Sequence
+
 import cv2
 import numpy as np
 from plantcv import plantcv as pcv
+
+from leaffliction import viz
 
 TRANSFORMS = [
     "GaussianBlur",
@@ -258,3 +262,51 @@ def color_histogram(rgb: np.ndarray,
         name: np.bincount(plane[inside], minlength=256)[:256] * 100.0 / total
         for name, plane in planes.items()
     }
+
+
+def color_histogram_image(rgb: np.ndarray,
+                          mask: np.ndarray | None = None) -> np.ndarray:
+    """Render the color histogram as an image.
+
+    Every other transform hands back an array, so the histogram is
+    rasterised too. That keeps apply() single-typed and spares the
+    batch writer a special case for the one panel that is a plot.
+    """
+    histograms = color_histogram(rgb, mask)
+    figure = viz.build_color_histogram(histograms, HISTOGRAM_COLORS)
+    return viz.figure_to_array(figure)
+
+
+_DISPATCH = {
+    "GaussianBlur": lambda rgb, mask: gaussian_blur_view(rgb),
+    "Mask": masked_leaf,
+    "RoiObjects": roi_objects,
+    "AnalyzeObject": analyze_object,
+    "Pseudolandmarks": pseudolandmarks,
+    "ColorHistogram": color_histogram_image,
+}
+
+
+def apply(rgb: np.ndarray, kind: str,
+          mask: np.ndarray | None = None) -> np.ndarray:
+    """Run one named transformation and return it as an RGB image.
+
+    Pass mask when several transforms run on the same photo, otherwise
+    each call segments the leaf again.
+    """
+    if kind not in _DISPATCH:
+        raise ValueError(
+            f"unknown transformation {kind!r}, expected one of "
+            f"{', '.join(TRANSFORMS)}"
+        )
+    if mask is None and kind != "GaussianBlur":
+        mask = leaf_mask(rgb)
+    return _DISPATCH[kind](rgb, mask)
+
+
+def apply_all(rgb: np.ndarray,
+              kinds: Sequence[str] | None = None) -> dict[str, np.ndarray]:
+    """Run several transformations, segmenting the leaf only once."""
+    kinds = list(TRANSFORMS) if kinds is None else list(kinds)
+    mask = leaf_mask(rgb)
+    return {kind: apply(rgb, kind, mask) for kind in kinds}
