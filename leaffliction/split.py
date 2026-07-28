@@ -2,7 +2,7 @@
 
 Trap 2 from leaffliction_team_plan.md section 0: augment first, split later
 leaks a rotated copy of a training image into validation. This module must
-only ever be called on the raw, un-augmented dataset. Person B's
+only ever be called on the raw, un-augmented dataset. B - Tanya's
 augmented_directory is built from `train_files.txt` afterwards — never the
 other way around.
 """

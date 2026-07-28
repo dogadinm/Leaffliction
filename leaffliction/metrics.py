@@ -1,4 +1,4 @@
-"""Evaluation metrics and validation-set proof (Person B)."""
+"""Evaluation metrics and validation-set proof (B - Tanya)."""
 
 from __future__ import annotations
 

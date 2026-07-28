@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Part 4 (inference) — predict a single leaf image's disease class.
 
-Displays the original image, a transformed version (Person C's
+Displays the original image, a transformed version (C - Misha's
 leaffliction.transform, for visual context only), and the predicted label.
 
 Model contract: this loads ONLY model/model.keras, model/labels.json and

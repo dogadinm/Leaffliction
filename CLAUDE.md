@@ -1,6 +1,6 @@
-# Leaffliction — Person A (Infra & Model)
+# Leaffliction — A - Elena (Infra & Model)
 
-This checkout belongs to **Person A** on a 3-person team building the 42 School
+This checkout belongs to **A - Elena** on a 3-person team building the 42 School
 "Leaffliction" leaf-disease classifier. Full team plan: `leaffliction_team_plan.md`.
 Read it once for the schedule and study guide — this file only encodes the rules
 that must never be silently violated while coding here.
@@ -13,7 +13,7 @@ Owned files (write freely):
 `setup.cfg`, `.gitignore`, `signature.txt`, top-level `README.md`, repo skeleton.
 
 **Do not edit** `Augmentation.py`, `Transformation.py`, `leaffliction/augment.py`,
-`leaffliction/transform.py` — those belong to Person B and Person C. If a change
+`leaffliction/transform.py` — those belong to B - Tanya and C - Misha. If a change
 there is needed, it's a message to them, not a diff from this seat. `train.py`'s
 pipeline half (`leaffliction/pipeline.py` if the file gets split) is B's — only
 touch the model/training-loop half.
