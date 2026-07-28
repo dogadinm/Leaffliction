@@ -159,22 +159,17 @@ def show_image_grid(
     images: Sequence[np.ndarray],
     titles: Sequence[str],
     suptitle: str = "",
+    save_path: Path | str | None = None,
 ) -> None:
-    """Display images side by side in a single row, each with its own title."""
-    if len(images) != len(titles):
-        raise ValueError("images and titles must be the same length")
+    """Display images side by side in a single row, each with its own title.
 
-    n = len(images)
-    fig, axes = plt.subplots(1, n, figsize=(3 * n, 3.5))
-    axes = [axes] if n == 1 else list(axes)
-    for ax, img, title in zip(axes, images, titles):
-        ax.imshow(img)
-        ax.set_title(title, fontsize=9)
-        ax.axis("off")
-    if suptitle:
-        fig.suptitle(suptitle)
-    fig.tight_layout()
-    plt.show()
+    A thin wrapper over show_grid so that predict.py inherits its
+    grayscale handling: a single-channel result such as GaussianBlur
+    was rendered through matplotlib's default viridis colormap, which
+    turned the blur panel purple and yellow.
+    """
+    show_grid(images, titles, ncols=len(images), suptitle=suptitle or None,
+              save_path=save_path)
 
 
 def plot_class_distribution(counts: dict[str, int], title: str) -> None:
