@@ -36,10 +36,11 @@ leaffliction/
 │   ├── transform.py         # Person C — the PlantCV transforms
 │   ├── split.py              # stratified train/val split
 │   ├── viz.py                 # shared matplotlib helpers
-│   └── package.py            # builds the submission zip + signature.txt
+│   ├── package.py            # builds the submission zip + signature.txt
+│   └── metrics.py            # confusion matrix / per-class accuracy (used by train.py)
 ├── scripts/
 │   └── make_toy_dataset.py  # generates a small synthetic dataset for dev
-├── tests/                   # unit tests for io.py / split.py / package.py
+├── tests/                   # unit tests for io.py / split.py / package.py / metrics.py
 ├── requirements.txt
 ├── setup.cfg                # flake8 config
 └── signature.txt

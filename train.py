@@ -24,6 +24,10 @@ untouched raw images. Never point --train-dir at a directory that existed
 before this split ran. --no-augment trains directly on the raw split, useful
 for fast toy-dataset iteration.
 
+After training, prints a confusion matrix and per-class accuracy over the
+validation set (leaffliction.metrics), plus the >=100-image validation-size
+proof the subject requires — both provable in code, not just claimed.
+
 Usage:
     ./train.py ./Apple/
     ./train.py ./Apple/ --no-augment
@@ -44,6 +48,11 @@ from tensorflow import keras
 from leaffliction.augment import AUGMENTATIONS
 from leaffliction.augment import apply as apply_augmentation
 from leaffliction.io import iter_images, label_of, load_image, save_image, try_load_image
+from leaffliction.metrics import (
+    confusion_matrix,
+    print_confusion_report,
+    prove_validation_size,
+)
 from leaffliction.package import build_release
 from leaffliction.split import stratified_split, write_split
 
@@ -227,10 +236,11 @@ def main(argv: list[str] | None = None) -> int:
 
     train_files, val_files = stratified_split(args.directory, args.val_split, args.seed)
     val_files = filter_readable(val_files)
-    if len(val_files) < MIN_VAL_IMAGES:
+    proof = prove_validation_size(val_files, minimum=MIN_VAL_IMAGES)
+    if not proof["meets_requirement"]:
         print(
-            f"warning: validation set has {len(val_files)} images, "
-            f"the subject requires >= {MIN_VAL_IMAGES}",
+            f"warning: validation set has {proof['validation_count']} images, "
+            f"the subject requires >= {proof['minimum_required']}",
             file=sys.stderr,
         )
 
@@ -299,6 +309,11 @@ def main(argv: list[str] | None = None) -> int:
         max(history_head.history["val_accuracy"] + history_ft.history["val_accuracy"])
     )
     print(f"best val_accuracy: {val_accuracy:.4f} over {len(val_files)} images")
+
+    idx_to_class = {idx: label for label, idx in label_index.items()}
+    y_true = np.array([label_index[label_of(p)] for p in val_files])
+    y_pred = np.argmax(model.predict(val_ds, verbose=0), axis=1)
+    print_confusion_report(confusion_matrix(y_true, y_pred, len(classes)), idx_to_class)
 
     model.save(model_path)
     (args.model_dir / "labels.json").write_text(

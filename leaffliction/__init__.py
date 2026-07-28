@@ -6,6 +6,8 @@ Package ownership (see ../leaffliction_team_plan.md section 2):
   split.py     - Person A - stratified train/val split.
   viz.py       - Person A - shared matplotlib helpers.
   package.py   - Person A - build the submission zip + signature.txt.
+  metrics.py   - Person A - confusion matrix / per-class accuracy, used by
+                 train.py after training to report the validation results.
   augment.py   - Person B - the 6 augmentation functions.
   transform.py - Person C - the PlantCV transforms.
 """
