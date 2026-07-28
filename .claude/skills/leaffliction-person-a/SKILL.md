@@ -1,10 +1,10 @@
 ---
 name: leaffliction-person-a
-description: "INVOKE THIS SKILL when building or reviewing Person A's parts of the Leaffliction project — repo skeleton, io.py, Distribution.py, split.py, the model + training loop in train.py, predict.py, or the zip/signature.txt packaging step. Covers the exact contracts B and C's code depends on, the split-before-augment rule, transfer-learning setup, and the freeze-the-zip-last discipline."
+description: "INVOKE THIS SKILL when building or reviewing A - Elena's parts of the Leaffliction project — repo skeleton, io.py, Distribution.py, split.py, the model + training loop in train.py, predict.py, or the zip/signature.txt packaging step. Covers the exact contracts B and C's code depends on, the split-before-augment rule, transfer-learning setup, and the freeze-the-zip-last discipline."
 ---
 
 <oneliner>
-Person A owns infra + model: repo skeleton, `Distribution.py`, `leaffliction/io.py`,
+A - Elena owns infra + model: repo skeleton, `Distribution.py`, `leaffliction/io.py`,
 `leaffliction/split.py`, `train.py` (model half), `predict.py`, and packaging
 (zip + `signature.txt`). Everything here is scoped to that seat only — B owns
 augmentation, C owns PlantCV transforms. Full context: `leaffliction_team_plan.md`

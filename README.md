@@ -3,7 +3,7 @@
 Leaf-disease classification: distribution analysis, augmentation,
 PlantCV-based transforms, and a trained classifier with predict/inference.
 Team plan and role split: `leaffliction_team_plan.md`. Working rules for this
-seat (Person A — Infra & Model): `CLAUDE.md`.
+seat (A - Elena — Infra & Model): `CLAUDE.md`.
 
 ## Setup
 
@@ -26,14 +26,14 @@ at `ModuleNotFoundError`.
 ```
 leaffliction/
 ├── Distribution.py          # Part 1 — class distribution (pie + bar)
-├── Augmentation.py          # Part 2 — Person B, six offline augmentations
-├── Transformation.py        # Part 3 — Person C, PlantCV transforms
+├── Augmentation.py          # Part 2 — B - Tanya, six offline augmentations
+├── Transformation.py        # Part 3 — C - Misha, PlantCV transforms
 ├── train.py                 # Part 4 — model + training loop
 ├── predict.py                # Part 4 — inference
 ├── leaffliction/
 │   ├── io.py                # image load/save/walk — the only cv2 access point
-│   ├── augment.py           # Person B — the 6 augmentation functions
-│   ├── transform.py         # Person C — the PlantCV transforms
+│   ├── augment.py           # B - Tanya — the 6 augmentation functions
+│   ├── transform.py         # C - Misha — the PlantCV transforms
 │   ├── split.py              # stratified train/val split
 │   ├── viz.py                 # shared matplotlib helpers
 │   ├── package.py            # builds the submission zip + signature.txt

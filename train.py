@@ -181,7 +181,7 @@ def build_dataset(
     shuffle: bool,
     seed: int,
 ) -> tf.data.Dataset:
-    """A minimal tf.data pipeline standing in for Person B's input pipeline
+    """A minimal tf.data pipeline standing in for B - Tanya's input pipeline
     (leaffliction_team_plan.md: "A trains on the raw split before B's
     augmented directory exists, then swaps the path"). Decoding uses
     tf.image, not io.load_image: this runs inside the tf.data graph over the
