@@ -1,0 +1,3 @@
+not-yet-generated — run `python3 -m leaffliction.package` (or `./train.py`)
+after the final training run to overwrite this with the real sha1 of the
+frozen submission zip. Do this exactly once, last, right before the defense.
