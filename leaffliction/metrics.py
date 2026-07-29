@@ -1,4 +1,4 @@
-"""Evaluation metrics and validation-set proof (B - Tanya)."""
+"""Evaluation metrics, and the proof that validation is big enough."""
 
 from __future__ import annotations
 
@@ -16,9 +16,7 @@ def prove_validation_size(
     val_paths: list[Path],
     minimum: int = 100,
 ) -> dict[str, object]:
-    """
-    Build a proof dict showing validation set size meets the subject requirement.
-    """
+    """Report the validation size against the 100-image requirement."""
     count = validation_image_count(val_paths)
     return {
         "validation_count": count,

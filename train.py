@@ -1,32 +1,20 @@
 #!/usr/bin/env python3
 """Part 4 (model half) — train the leaf-disease classifier.
 
-Transfer learning on MobileNetV2: train a frozen-base head to convergence,
-then unfreeze the top block and fine-tune at a 10x lower learning rate.
-Chosen over a from-scratch CNN because it reaches >90% val accuracy on a
-small leaf dataset in far fewer epochs (leaffliction_team_plan.md 5.2); the
-from-scratch alternative is a standard conv-BN-ReLU-pool stack repeated a few
-times then dense->softmax, kept in reserve for the defense question.
+Transfer learning on MobileNetV2: bring a frozen-base head to
+convergence, then unfreeze the top block and fine-tune at a 10x lower
+learning rate. A from-scratch conv-BN-ReLU-pool stack would work, but
+needs far more epochs to clear 90% on a data set this small.
 
-Split-then-augment (trap 2, plan section 0): this script always computes the
-stratified split itself from the raw --directory and writes
-model/{train,val}_files.txt as the provable record, before a single
-augmented pixel exists. By default it then builds a balanced
-augmented_directory from *that train split only* (oversampling minority
-classes with leaffliction.augment's six offline augmentations, the same
-functions Augmentation.py's directory mode uses) and trains on that — so the
-plain `./train.py DIR` invocation the subject and delivery checklist show
-actually satisfies "train.py must increase/modify those images", with no
-separate manual step required. --train-dir overrides *where pixels are read
-from* for the training files already chosen by that split (e.g. to reuse a
-directory someone else built the same way); validation always reads the
-untouched raw images. Never point --train-dir at a directory that existed
-before this split ran. --no-augment trains directly on the raw split, useful
-for fast toy-dataset iteration.
+Split first, augment second. The stratified split is computed from the
+raw directory and written to model/{train,val}_files.txt before a
+single augmented pixel exists — that file is the proof. Only the train
+half is then balanced by oversampling with the six offline
+augmentations; validation always reads untouched originals.
 
-After training, prints a confusion matrix and per-class accuracy over the
-validation set (leaffliction.metrics), plus the >=100-image validation-size
-proof the subject requires — both provable in code, not just claimed.
+--train-dir reads training pixels from a directory built the same way
+instead of rebuilding it; never point it at one that predates the
+split. --no-augment skips balancing, for fast toy-dataset runs.
 
 Usage:
     ./train.py ./Apple/
@@ -107,8 +95,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 def filter_readable(files: list[Path]) -> list[Path]:
-    """Drop corrupt/non-image files once, up front, via io.py — so a bad
-    file in the dataset fails loudly here instead of crashing mid-epoch."""
+    """Drop unreadable files up front, so a bad one fails here rather
+    than mid-epoch."""
     kept = []
     for path in files:
         if try_load_image(path) is not None:
@@ -124,13 +112,12 @@ def build_augmented_train_dir(
     output_root: Path,
     rng: np.random.Generator,
 ) -> list[Path]:
-    """Oversample minority classes into output_root, from train_files only.
+    """Oversample minority classes into output_root, train files only.
 
-    train_files must already be the *train* half of stratified_split's
-    output (trap 2: never call this on a directory built before the split).
-    Mirrors Augmentation.py's own directory-balancing mode, reusing the same
-    leaffliction.augment functions, so the two stay consistent by
-    construction rather than by convention.
+    train_files must be the train half of stratified_split — never a
+    directory that existed before the split ran. Uses the same
+    leaffliction.augment functions as Augmentation.py, so the two agree
+    by construction rather than by convention.
     """
     by_class: dict[str, list[Path]] = defaultdict(list)
     for path in train_files:
@@ -181,13 +168,13 @@ def build_dataset(
     shuffle: bool,
     seed: int,
 ) -> tf.data.Dataset:
-    """A minimal tf.data pipeline standing in for B - Tanya's input pipeline
-    (leaffliction_team_plan.md: "A trains on the raw split before B's
-    augmented directory exists, then swaps the path"). Decoding uses
-    tf.image, not io.load_image: this runs inside the tf.data graph over the
-    whole dataset every epoch, where a cv2 round-trip per image would be the
-    slow path. io.py remains the single source of truth for *which* files
-    count as valid images (see filter_readable above)."""
+    """Build the tf.data input pipeline.
+
+    Decoding goes through tf.image rather than io.load_image because
+    this runs inside the tf.data graph over the whole set every epoch,
+    where a cv2 round-trip per image is the slow path. io.py still
+    decides *which* files count as images — see filter_readable.
+    """
     paths = [str(p) for p in files]
     labels = [label_index[label_of(p)] for p in files]
 

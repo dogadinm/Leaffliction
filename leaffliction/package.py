@@ -1,14 +1,10 @@
 """Build the final submission zip and its sha1 signature.
 
-Only this module touches the zip (leaffliction_team_plan.md section 8: "Zip
-rebuilt after hashing" is a named risk — one person owns it, nobody else
-touches it). Compute the hash last, once frozen: if the zip is rebuilt after
-signature.txt exists, the hash no longer matches and the grade goes to 0.
+Run this once, last. Every invocation rebuilds the archive and rewrites
+signature.txt; rebuild after the hash is recorded and the two no longer
+match, which is an automatic zero.
 
-Assumption (confirm against the actual subject PDF if it's stricter): the zip
-ships the code plus the trained model/ artifacts, but never the raw dataset,
-so `no dataset ... in the git repo` isn't accidentally violated by an
-un-ignored zip either.
+The zip ships the code and the trained model/, never the raw data set.
 """
 from __future__ import annotations
 
@@ -34,8 +30,8 @@ def _should_include(relative_path: Path) -> bool:
 
 
 def build_zip(root: Path, zip_path: Path) -> Path:
-    """Zip everything under root except the dataset, the zip itself, and
-    version control / cache directories."""
+    """Zip everything under root except the data set, the zip itself,
+    and version control or cache directories."""
     root = Path(root)
     zip_path = Path(zip_path)
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:

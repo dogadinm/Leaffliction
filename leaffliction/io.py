@@ -1,9 +1,8 @@
 """Shared image I/O primitives.
 
-Every module in this repo loads/saves images through here — it is the only
-file allowed to call cv2.imread/cv2.imwrite directly. That is what kills the
-classic bug where a mask works in one file (RGB) and silently breaks in
-another (BGR): there is exactly one place the byte order gets decided.
+The only file allowed to call cv2.imread/cv2.imwrite. One place decides
+the byte order, so a mask cannot work in one module (RGB) and silently
+break in another (BGR). Images are RGB everywhere above this line.
 """
 from __future__ import annotations
 
@@ -37,11 +36,10 @@ def load_image(path: Path) -> np.ndarray:
 
 
 def try_load_image(path: Path) -> Optional[np.ndarray]:
-    """Like load_image but never raises.
+    """Like load_image but returns None instead of raising.
 
-    Logs a warning and returns None on failure. Use this at any boundary that
-    must survive a corrupt or non-image file without a traceback
-    (Distribution.py, train.py's file filtering, predict.py).
+    Use it wherever one corrupt file must not abort a run over
+    thousands.
     """
     try:
         return load_image(path)

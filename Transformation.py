@@ -1,13 +1,8 @@
 #!/usr/bin/env python3
-"""Display or save the image transformations of a leaf photo.
+"""Part 3 — extract leaf features from a photo or a whole directory.
 
-Two modes, as the subject describes them:
-
-    ./Transformation.py "Apple_scab/image (1).JPG"
-        segment one leaf and show the transformations on screen
-
-    ./Transformation.py -src Apple_scab -dst out -mask
-        walk a directory and write the chosen transformations to disk
+    ./Transformation.py "Apple_scab/image (1).JPG"   show them on screen
+    ./Transformation.py -src Apple_scab -dst out     write them to disk
 """
 
 from __future__ import annotations
@@ -81,8 +76,8 @@ def as_color(image: np.ndarray) -> np.ndarray:
 def read_image(path: Path) -> np.ndarray:
     """Load an image, telling a missing path from an unreadable one.
 
-    io.load_image reports both cases as "could not read", which sends
-    you hunting for a corrupt file when you actually mistyped a path.
+    io.load_image calls both "could not read", which sends you hunting
+    for a corrupt file when you only mistyped a path.
     """
     if not path.exists():
         raise FileNotFoundError(f"no such file: {path}")
@@ -101,9 +96,8 @@ def display(path: Path, kinds: list[str]) -> int:
 
     results = transform.apply_all(rgb, kinds)
 
-    # The histogram is a plot with its own axes and legend. Squeezed
-    # into a grid cell it is unreadable, so it gets its own window,
-    # the way the subject prints it as a separate figure.
+    # The histogram is a plot with axes and a legend; squeezed into a
+    # grid cell it is unreadable, so it gets its own window.
     panels = [kind for kind in kinds if kind != "ColorHistogram"]
     if panels:
         viz.show_grid(

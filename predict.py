@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
-"""Part 4 (inference) — predict a single leaf image's disease class.
+"""Part 4 (inference) — name the disease on a single leaf image.
 
-Displays the original image, a transformed version (C - Misha's
-leaffliction.transform, for visual context only), and the predicted label.
+Shows the original, a transformed version for context, and the label.
 
-Model contract: this loads ONLY model/model.keras, model/labels.json and
-model/config.json, and never imports train.py — that is the whole point of
-freezing the contract (leaffliction_team_plan.md section 2), so predict.py
-keeps working even if train.py changes shape.
+Loads only model.keras, labels.json and config.json, and never imports
+train.py: that is what lets training change shape without breaking
+inference.
 
 Usage:
     ./predict.py "<image>"
@@ -85,10 +83,9 @@ def main(argv: list[str] | None = None) -> int:
     try:
         transformed = transform_apply(img, args.transform)
     except (ValueError, cv2.error) as exc:
-        # --transform is argparse-validated against TRANSFORMS, so this is a
-        # transform that fails on this particular image (e.g. PlantCV
-        # can't segment a degenerate leaf), not a bad flag value. Show the
-        # original twice rather than crashing the prediction display.
+        # argparse already validated the name, so this is a transform
+        # failing on this particular image — a leaf PlantCV cannot
+        # segment. Show the original twice rather than lose the label.
         print(f"warning: {args.transform} failed on this image: {exc}", file=sys.stderr)
 
     print(f"{args.image.name}: {label} ({confidence:.1%})")

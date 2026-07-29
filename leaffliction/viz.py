@@ -19,10 +19,9 @@ def finish_figure(
     *,
     dpi: int = 100,
 ) -> None:
-    """Display the figure, or write it to save_path and close it.
+    """Show the figure, or write it to save_path and close it.
 
-    Batch mode must never open a window, so passing save_path switches
-    the figure from interactive display to disk output.
+    Batch mode must never open a window — that is what save_path is for.
     """
     fig.tight_layout()
     if save_path is None:
@@ -55,10 +54,10 @@ def show_grid(
     save_path: Path | str | None = None,
     show_axes: bool = False,
 ) -> None:
-    """Display a grid of images, or save it when save_path is given.
+    """Lay images out in a grid, then show or save it.
 
-    ncols defaults to a single row. Unused cells of the last row are
-    hidden so a 5-image 2-column grid does not show an empty frame.
+    ncols defaults to one row. Leftover cells in the last row are
+    hidden, so 5 images in 2 columns leave no empty frame.
     """
     if not images:
         raise ValueError("show_grid needs at least one image")
@@ -96,8 +95,8 @@ def build_color_histogram(
 ) -> Figure:
     """Build the nine channel line plot of Figure IV.7.
 
-    This is a line plot rather than an image, so it cannot share a cell
-    with the transformation grid and gets its own figure.
+    A plot, not an image, so it gets its own figure rather than a cell
+    in the transformation grid.
     """
     fig, ax = plt.subplots(figsize=(9, 5))
     for name in sorted(histograms):
@@ -129,13 +128,10 @@ def show_color_histogram(
 def figure_to_array(fig: Figure, *, dpi: int = 100) -> np.ndarray:
     """Render a figure into an RGB uint8 array and close it.
 
-    A dedicated Agg canvas is attached rather than using fig.canvas,
-    because the active backend may be an interactive one whose canvas
-    has no pixel buffer to read.
-
-    The dpi is set explicitly: matplotlib inherits it from the display,
-    so the same figure rasterises to 900x500 on one machine and
-    1800x1000 on a retina screen.
+    Attaches its own Agg canvas: an interactive backend's canvas has no
+    pixel buffer to read from. dpi is set explicitly because matplotlib
+    otherwise inherits it from the display, and the same plot comes out
+    twice as large on a retina screen.
     """
     fig.set_dpi(dpi)
     canvas = FigureCanvasAgg(fig)
@@ -161,12 +157,11 @@ def show_image_grid(
     suptitle: str = "",
     save_path: Path | str | None = None,
 ) -> None:
-    """Display images side by side in a single row, each with its own title.
+    """Display images side by side in a single row.
 
-    A thin wrapper over show_grid so that predict.py inherits its
-    grayscale handling: a single-channel result such as GaussianBlur
-    was rendered through matplotlib's default viridis colormap, which
-    turned the blur panel purple and yellow.
+    Wraps show_grid so predict.py inherits its grayscale handling: a
+    single-channel result like GaussianBlur used to come out purple and
+    yellow through matplotlib's default colormap.
     """
     show_grid(images, titles, ncols=len(images), suptitle=suptitle or None,
               save_path=save_path)

@@ -1,9 +1,9 @@
 """PlantCV leaf transformations.
 
-PlantCV takes its images in BGR order even though its parameters are
-named rgb_img: rgb2gray_lab calls cv2.cvtColor(img, COLOR_BGR2LAB)
-internally. The shared contract in io.py is RGB, so BGR stays private
-to this module and every public function takes and returns RGB.
+Careful: PlantCV wants BGR despite naming its parameter rgb_img —
+rgb2gray_lab calls cv2.cvtColor(img, COLOR_BGR2LAB) internally. Since
+io.py hands out RGB, BGR stays private to this module and every public
+function here takes and returns RGB.
 """
 
 from __future__ import annotations
@@ -56,22 +56,21 @@ HISTOGRAM_COLORS = {
 
 
 def _to_bgr(rgb: np.ndarray) -> np.ndarray:
-    """Convert the shared RGB contract into what PlantCV expects."""
+    """RGB in, BGR out — the byte order PlantCV expects."""
     return cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
 
 
 def _to_rgb(bgr: np.ndarray) -> np.ndarray:
-    """Convert a PlantCV result back to the shared RGB contract."""
+    """BGR in, RGB out — back to what the rest of the project uses."""
     return cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
 
 
 def _channel_binary(bgr: np.ndarray, channel: str, object_type: str):
     """Blur one LAB channel and split it with Otsu.
 
-    The blur runs before the threshold so that JPEG noise and leaf
-    texture do not each become their own speck in the binary image.
-    Otsu picks the cut from the image itself, so exposure can vary
-    between photos without breaking the segmentation.
+    Blur first, or JPEG noise and leaf texture each become their own
+    speck in the binary. Otsu reads the cut off the image itself, so
+    exposure can vary between photos.
     """
     gray = pcv.rgb2gray_lab(rgb_img=bgr, channel=channel)
     blurred = pcv.gaussian_blur(img=gray, ksize=BLUR_KSIZE)
@@ -85,10 +84,10 @@ def gaussian_blur_view(rgb: np.ndarray) -> np.ndarray:
 
 
 def _largest_blob(mask: np.ndarray) -> np.ndarray:
-    """Keep only the biggest connected component.
+    """Keep the biggest connected component.
 
-    A photo holds one leaf, so anything detached from the main blob is
-    a shadow edge or a speck of background that survived thresholding.
+    One photo, one leaf: anything detached from it is a shadow edge or
+    a speck of background that survived the threshold.
     """
     count, labels, stats, _ = cv2.connectedComponentsWithStats(mask, 8)
     if count <= 1:
@@ -100,30 +99,20 @@ def _largest_blob(mask: np.ndarray) -> np.ndarray:
 def leaf_mask(rgb: np.ndarray) -> np.ndarray:
     """Return a binary leaf mask (uint8, 0 or 255).
 
-    Two LAB channels are thresholded and OR-ed together because neither
-    covers the whole data set on its own:
-
-    - a (green-magenta) separates chlorophyll from any neutral or brown
-      background, but weakens once a leaf is mostly lesion.
-    - b (blue-yellow) is strong on yellowish leaves and near-useless on
-      dark blue-green ones, where leaf and background differ by about
-      two levels and Otsu has nothing to cut.
-
-    Then fill drops small specks of background wrongly marked as leaf,
-    and fill_holes closes gaps enclosed by the leaf. fill_holes is what
-    makes diseased leaves work: a black rot lesion is dark brown, lands
-    on the background side of the threshold and gets punched out of the
-    mask, leaving 22 holes on Grape_Black_rot. The lesion is part of the
-    leaf and must stay in, otherwise the color histogram measures the
-    leaf without its disease.
-
-    Measured over 320 images, 40 per class: a alone 305, b alone 295,
-    a|b 312, a|b with the largest blob kept 320.
+    Neither LAB channel covers the whole data set alone, so both are
+    thresholded and OR-ed: a (green-magenta) keys on chlorophyll and
+    holds against any background, but fades once a leaf is mostly
+    lesion; b (blue-yellow) is strong on yellowish leaves and useless
+    on dark blue-green ones, where it barely separates leaf from bench.
     """
     bgr = _to_bgr(rgb)
     green = _channel_binary(bgr, "a", "dark")
     yellow = _channel_binary(bgr, "b", "light")
     joined = pcv.logical_or(bin_img1=green, bin_img2=yellow)
+    # fill drops specks of background marked as leaf; fill_holes does
+    # the reverse and is what makes diseased leaves work — a dark rot
+    # lesion falls on the background side of the threshold and gets
+    # punched out, but it is part of the leaf and the histogram needs it.
     filled = pcv.fill(bin_img=joined, size=FILL_SIZE)
     return _largest_blob(pcv.fill_holes(bin_img=filled))
 
@@ -142,13 +131,12 @@ def masked_leaf(
 
 
 def roi_objects(rgb: np.ndarray, mask: np.ndarray | None = None) -> np.ndarray:
-    """Draw the region of interest and the leaf parts kept inside it.
+    """Draw the region of interest and the leaf kept inside it.
 
-    The ROI is the whole frame here because the data set is one
-    centered leaf per photo. It still earns its place: roi_type
-    "partial" keeps any blob that merely touches the region, so a leaf
-    running off the edge of the frame survives instead of being dropped
-    for not being fully contained.
+    The ROI is the whole frame — one centred leaf per photo leaves
+    nothing to select. roi_type "partial" still matters: it keeps a
+    blob that merely touches the region, so a leaf running off the edge
+    survives instead of being dropped for not fitting.
     """
     if mask is None:
         mask = leaf_mask(rgb)
@@ -168,16 +156,15 @@ def roi_objects(rgb: np.ndarray, mask: np.ndarray | None = None) -> np.ndarray:
 
 def analyze_object(rgb: np.ndarray,
                    mask: np.ndarray | None = None) -> np.ndarray:
-    """Draw the shape analysis: contour, convex hull, axes and centroid.
+    """Draw contour, convex hull, axes and centroid.
 
-    The measurements themselves (area, perimeter, solidity, width,
-    height) land in pcv.outputs and are read back by shape_measures.
+    The numbers behind the drawing come back out via shape_measures.
     """
     if mask is None:
         mask = leaf_mask(rgb)
-    # analyze.size stamps the sample label across the centroid; the
-    # figure in the subject has no such text, and text_size drives the
-    # cv2.putText font scale, so zero removes it.
+    # analyze.size stamps the sample label across the centroid, which
+    # the subject's figure does not have. text_size is the putText font
+    # scale, so zero hides it; restore it, PlantCV params are global.
     previous = pcv.params.text_size
     pcv.params.text_size = 0
     try:
@@ -206,11 +193,10 @@ def pseudolandmarks(rgb: np.ndarray,
                     mask: np.ndarray | None = None) -> np.ndarray:
     """Mark 20 homology points along the top, bottom and centre lines.
 
-    PlantCV walks the contour and cuts it into 20 equal steps along the
-    x axis, then takes the topmost, bottommost and central point of the
-    leaf at each step. The result is a fixed-length description of the
-    shape that needs no manual annotation, so two leaves photographed
-    at different sizes can still be compared point by point.
+    PlantCV cuts the contour into 20 equal steps along the x axis and
+    takes the topmost, bottommost and central point at each. Fixed
+    length is the whole point: two leaves of different size stay
+    comparable point by point, with no manual annotation.
     """
     if mask is None:
         mask = leaf_mask(rgb)
@@ -236,12 +222,9 @@ def color_histogram(rgb: np.ndarray,
                     mask: np.ndarray | None = None) -> dict[str, np.ndarray]:
     """Return the nine channel histograms of Figure IV.7.
 
-    Only pixels inside the mask are counted: including the background
-    would add a tall spike at whatever grey the bench happens to be,
-    which says nothing about the leaf and swamps the real signal.
-
-    Bins hold the proportion of leaf pixels rather than raw counts, so
-    a big leaf and a small one can be laid over each other.
+    Masked pixels only, otherwise the tallest peak is the grey of the
+    bench. Bins hold percent of leaf pixels rather than raw counts, so
+    a big leaf and a small one overlay.
     """
     if mask is None:
         mask = leaf_mask(rgb)
@@ -271,11 +254,10 @@ def color_histogram(rgb: np.ndarray,
 
 def color_histogram_image(rgb: np.ndarray,
                           mask: np.ndarray | None = None) -> np.ndarray:
-    """Render the color histogram as an image.
+    """Render the colour histogram as an image.
 
-    Every other transform hands back an array, so the histogram is
-    rasterised too. That keeps apply() single-typed and spares the
-    batch writer a special case for the one panel that is a plot.
+    Rasterised so that apply() stays single-typed and the batch writer
+    needs no special case for the one panel that is a plot.
     """
     histograms = color_histogram(rgb, mask)
     figure = viz.build_color_histogram(histograms, HISTOGRAM_COLORS)
@@ -294,10 +276,10 @@ _DISPATCH = {
 
 def apply(rgb: np.ndarray, kind: str,
           mask: np.ndarray | None = None) -> np.ndarray:
-    """Run one named transformation and return it as an RGB image.
+    """Run one named transformation, always returning an RGB image.
 
-    Pass mask when several transforms run on the same photo, otherwise
-    each call segments the leaf again.
+    Pass mask when several transforms share a photo, or each call
+    segments the leaf again.
     """
     if kind not in _DISPATCH:
         raise ValueError(
